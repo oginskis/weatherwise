@@ -60,7 +60,7 @@ The app uses two MCP servers, both communicating over the **streamable-http** tr
 
 ### Weather MCP (port 8080)
 
-An existing open-source package [`mcp-weather-server`](https://github.com/isdaniel/mcp_weather_server) installed via pip. It wraps the [Open-Meteo API](https://open-meteo.com/) — completely free, no API key required. Exposes tools like `get_current_weather`, `get_weather_forecast`, `get_air_quality`, and more. No custom code needed — just install and start.
+An existing open-source package [`mcp-weather-server`](https://github.com/isdaniel/mcp_weather_server) that wraps the [Open-Meteo API](https://open-meteo.com/) — completely free, no API key required. Exposes tools like `get_current_weather`, `get_weather_forecast`, `get_air_quality`, and more.
 
 ### News MCP (port 8081)
 
