@@ -6,7 +6,7 @@ A conversational AI assistant that answers questions about **current weather** a
 
 ## How It Works
 
-The app runs three processes orchestrated by a single launcher:
+The app consists of three processes orchestrated by a single launcher:
 
 ```
 Streamlit Chat UI (port 8501)
