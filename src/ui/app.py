@@ -2,16 +2,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-import httpx
 import streamlit as st
-from pydantic_ai import exceptions as pydantic_ai_exceptions
-from pydantic_ai.messages import ModelMessage
-
-from src.agent.agent import agent
-from src.mcp_servers.news.gnews_client import GNewsAPIError
-from src.agent.models import AgentResponse
-from src.ui.components.news_card import render_news_cards
-from src.ui.components.weather_card import render_weather_card
 
 logger = logging.getLogger(__name__)
 
@@ -42,17 +33,18 @@ def _get_event_loop() -> asyncio.AbstractEventLoop:
     return st.session_state.event_loop
 
 
-async def _ask_agent(
-    user_message: str, message_history: list[ModelMessage] | None = None
-) -> tuple[AgentResponse, list[ModelMessage]]:
-    """Send a message to the PydanticAI agent and return structured output + updated history."""
-    async with agent:
-        result = await agent.run(user_message, message_history=message_history)
-    return result.output, result.all_messages()
+@st.cache_resource
+def _get_agent():
+    """Lazy-load the PydanticAI agent on first use (not at import time)."""
+    from src.agent.agent import agent
+    return agent
 
 
-def _render_response(response: AgentResponse) -> None:
+def _render_response(response) -> None:
     """Render the agent response with text and optional cards."""
+    from src.ui.components.news_card import render_news_cards
+    from src.ui.components.weather_card import render_weather_card
+
     if response.message:
         st.markdown(response.message)
     if response.weather is not None:
@@ -63,6 +55,10 @@ def _render_response(response: AgentResponse) -> None:
 
 def _handle_prompt(prompt: str) -> None:
     """Display user message, call agent with spinner, render response."""
+    import httpx
+    from pydantic_ai import exceptions as pydantic_ai_exceptions
+    from src.mcp_servers.news.gnews_client import GNewsAPIError
+
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar=USER_AVATAR):
         st.markdown(prompt)
@@ -70,10 +66,17 @@ def _handle_prompt(prompt: str) -> None:
     with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         with st.spinner("Thinking..."):
             try:
+                agent = _get_agent()
                 loop = _get_event_loop()
-                response, updated_history = loop.run_until_complete(
-                    _ask_agent(prompt, st.session_state.agent_history)
-                )
+
+                async def _run():
+                    async with agent:
+                        result = await agent.run(
+                            prompt, message_history=st.session_state.agent_history
+                        )
+                    return result.output, result.all_messages()
+
+                response, updated_history = loop.run_until_complete(_run())
                 st.session_state.agent_history = updated_history
                 _render_response(response)
                 st.session_state.messages.append(
@@ -101,7 +104,7 @@ def main() -> None:
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "agent_history" not in st.session_state:
-        st.session_state.agent_history: list[ModelMessage] = []
+        st.session_state.agent_history = []
 
     # Header
     st.markdown(
