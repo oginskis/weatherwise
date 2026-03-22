@@ -8,17 +8,27 @@ A conversational AI assistant that answers questions about **current weather** a
 
 The app consists of three processes orchestrated by a single launcher:
 
-```
-Streamlit Chat UI (port 8501)
-        |
-        v
-PydanticAI Agent (LLM — configurable provider)
-   |                    |
-   v                    v
-Weather MCP (8080)   News MCP (8081)
-   |                    |
-   v                    v
-Open-Meteo API       GNews.io API
+```mermaid
+graph TD
+    UI["🖥️ Streamlit Chat UI"]
+    Agent["🤖 PydanticAI Agent<br/><i>configurable LLM provider</i>"]
+    WeatherMCP["🌤️ Weather MCP Server"]
+    NewsMCP["📰 News MCP Server"]
+    OpenMeteo["🌍 Open-Meteo API"]
+    GNews["📡 GNews.io API"]
+
+    UI -->|async| Agent
+    Agent -->|MCP| WeatherMCP
+    Agent -->|MCP| NewsMCP
+    WeatherMCP --> OpenMeteo
+    NewsMCP --> GNews
+
+    style UI fill:#667eea,stroke:#5a6fd6,color:#fff
+    style Agent fill:#764ba2,stroke:#6a4292,color:#fff
+    style WeatherMCP fill:#4facfe,stroke:#4495e6,color:#fff
+    style NewsMCP fill:#43e97b,stroke:#3cd06e,color:#fff
+    style OpenMeteo fill:#f5f5f5,stroke:#ddd,color:#333
+    style GNews fill:#f5f5f5,stroke:#ddd,color:#333
 ```
 
 1. User asks a question in the chat (e.g., "Weather in Tokyo and today's tech news")
@@ -172,7 +182,7 @@ PydanticAI resolves the provider from the model string prefix and picks up the c
 ## Design Decisions
 
 - **MCP over direct API calls** — the agent discovers tools dynamically via the MCP protocol, making it easy to add new data sources without changing agent code
-- **Streamable-http transport** — modern, stateless MCP transport that works over standard HTTP
+- **Streamable-http transport** — modern, stateless MCP transport that works over standard HTTP. Because it's stateless, MCP servers and agent instances can be scaled independently behind separate services in production depending on load
 - **Existing weather server, custom news server** — pragmatic choice: the weather server is well-maintained and trusted; no good news MCP server existed, so we built a minimal one
 - **Structured output over free text** — the agent returns typed Pydantic models so the UI can render weather cards and news cards instead of raw text
 - **HTML-escaped rendering** — all user-controlled data is escaped with `html.escape()` before rendering in card components to prevent XSS

@@ -17,6 +17,7 @@ spec:
       containers:
         - name: weather-news
           image: europe-north1-docker.pkg.dev/alteronic-ai/kid-mind/weather-news:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 8501
           envFrom:

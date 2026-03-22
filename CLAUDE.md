@@ -28,21 +28,27 @@ uv sync --group dev
 
 Three independent processes orchestrated by `launcher.py`:
 
-```
-Streamlit Chat UI (port 8501)
-        │ async calls
-        ▼
-PydanticAI Agent (provider-agnostic, configured via .env)
-   │                    │
-   │ streamable-http    │ streamable-http
-   ▼                    ▼
-Weather MCP (8080)   News MCP (8081)
-(pip: mcp-weather-   (custom FastMCP,
- server, no code)     wraps GNews.io)
-   │                    │
-   ▼                    ▼
-Open-Meteo API       GNews.io API
-(no key)             (free tier key)
+```mermaid
+graph TD
+    UI["🖥️ Streamlit Chat UI"]
+    Agent["🤖 PydanticAI Agent<br/><i>configurable LLM provider</i>"]
+    WeatherMCP["🌤️ Weather MCP Server"]
+    NewsMCP["📰 News MCP Server"]
+    OpenMeteo["🌍 Open-Meteo API"]
+    GNews["📡 GNews.io API"]
+
+    UI -->|async| Agent
+    Agent -->|MCP| WeatherMCP
+    Agent -->|MCP| NewsMCP
+    WeatherMCP --> OpenMeteo
+    NewsMCP --> GNews
+
+    style UI fill:#667eea,stroke:#5a6fd6,color:#fff
+    style Agent fill:#764ba2,stroke:#6a4292,color:#fff
+    style WeatherMCP fill:#4facfe,stroke:#4495e6,color:#fff
+    style NewsMCP fill:#43e97b,stroke:#3cd06e,color:#fff
+    style OpenMeteo fill:#f5f5f5,stroke:#ddd,color:#333
+    style GNews fill:#f5f5f5,stroke:#ddd,color:#333
 ```
 
 **Key design decisions:**
