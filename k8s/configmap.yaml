@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weather-news-config
+  namespace: weather-news
+data:
+  LLM_MODEL: google-gla:gemini-3-flash-preview

@@ -1,0 +1,52 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: weather-news-gateway
+  namespace: weather-news
+  annotations:
+    networking.gke.io/certmap: "alteronic-certificate-map"
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+  - name: https
+    protocol: HTTPS
+    port: 443
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: weather-news-route
+  namespace: weather-news
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: weather-news-gateway
+  hostnames:
+  - "news.alteronic.dev"
+  rules:
+  - backendRefs:
+    - name: weather-news
+      port: 8501
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: weather-news-health
+  namespace: weather-news
+spec:
+  default:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    logConfig:
+      enabled: true
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: /healthz
+        port: 8501
+  targetRef:
+    group: ""
+    kind: Service
+    name: weather-news

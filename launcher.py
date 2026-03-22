@@ -68,6 +68,8 @@ def _start_streamlit() -> subprocess.Popen[bytes]:
             str(STREAMLIT_PORT),
             "--server.headless",
             "true",
+            "--server.address",
+            "0.0.0.0",
         ],
     )
 

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-news
+  namespace: weather-news
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weather-news
+  template:
+    metadata:
+      labels:
+        app: weather-news
+    spec:
+      serviceAccountName: weather-news
+      containers:
+        - name: weather-news
+          image: europe-north1-docker.pkg.dev/alteronic-ai/weather-news/weather-news:latest
+          ports:
+            - containerPort: 8501
+          envFrom:
+            - configMapRef:
+                name: weather-news-config
+            - secretRef:
+                name: weather-news-secrets
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8501
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 10

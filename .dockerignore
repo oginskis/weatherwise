@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+*.egg-info/
+dist/
+.pytest_cache/
+.mypy_cache/
+.git/
+.claude/
+.playwright-mcp/
+docs/
+tests/
+k8s/
+*.png
+*.md
+!.env.example
