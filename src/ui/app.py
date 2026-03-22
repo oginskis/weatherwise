@@ -33,7 +33,6 @@ def _get_event_loop() -> asyncio.AbstractEventLoop:
     return st.session_state.event_loop
 
 
-@st.cache_resource
 def _get_agent():
     """Lazy-load the PydanticAI agent on first use (not at import time)."""
     from src.agent.agent import agent
