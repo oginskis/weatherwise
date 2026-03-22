@@ -38,7 +38,7 @@ A Streamlit chat application that answers questions about current weather and la
 | ---------------- | ------------------------------------ | ------------------------------------------ |
 | Weather MCP      | `mcp-weather-server` (pip)           | streamable-http, port 8080, no API key     |
 | News MCP         | Custom FastMCP server (Python)       | streamable-http, port 8081, GNews.io       |
-| Agent            | PydanticAI                           | `google-gla:gemini-3-flash-preview`        |
+| Agent            | PydanticAI                           | Provider-agnostic, configured via `.env`   |
 | UI               | Streamlit                            | Chat interface with inline cards           |
 | Launcher         | `launcher.py`                        | Spawns all 3 processes, health checks      |
 | Package manager  | `uv`                                 | Single `pyproject.toml`                    |
@@ -192,22 +192,37 @@ The agent returns structured output so the UI can render weather and news as sty
 
 ### 6. Configuration
 
-**`config.py`** — centralized, no scattered magic values:
+**`config.py`** — centralized, env-driven, no scattered magic values:
 
 ```python
+import os
+
 WEATHER_MCP_URL: str = "http://localhost:8080/mcp"
 NEWS_MCP_URL: str = "http://localhost:8081/mcp"
 WEATHER_MCP_PORT: int = 8080
 NEWS_MCP_PORT: int = 8081
 STREAMLIT_PORT: int = 8501
-LLM_MODEL: str = "google-gla:gemini-3-flash-preview"
+LLM_MODEL: str = os.environ["LLM_MODEL"]
 ```
+
+**LLM provider switching** is purely a `.env` change — no code modifications needed. PydanticAI resolves the provider from the model string prefix (`google-gla:`, `openai:`, `anthropic:`). All three provider SDKs are installed as extras, and PydanticAI auto-discovers the corresponding API key from standard env vars.
 
 **`.env`:**
 
 ```
-GNEWS_API_KEY=your_key_here
+# LLM — switch provider by changing these two values
+LLM_MODEL=google-gla:gemini-3-flash-preview
 GOOGLE_API_KEY=your_gemini_key_here
+
+# Alternatively:
+# LLM_MODEL=openai:gpt-4o
+# OPENAI_API_KEY=your_key
+#
+# LLM_MODEL=anthropic:claude-sonnet-4-20250514
+# ANTHROPIC_API_KEY=your_key
+
+# News
+GNEWS_API_KEY=your_key_here
 ```
 
 ## Data Flow
@@ -240,7 +255,7 @@ name = "ai-training-weather"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "pydantic-ai[google]",
+    "pydantic-ai[google,openai,anthropic]",
     "mcp-weather-server",
     "mcp",
     "httpx",
