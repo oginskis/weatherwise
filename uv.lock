@@ -33,7 +33,7 @@ dependencies = [
     { name = "streamlit" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -47,13 +47,16 @@ requires-dist = [
     { name = "mcp-weather-server" },
     { name = "pydantic" },
     { name = "pydantic-ai", extras = ["google", "openai", "anthropic"] },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'" },
     { name = "python-dotenv" },
-    { name = "respx", marker = "extra == 'dev'" },
     { name = "streamlit" },
 ]
-provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "respx" },
+]
 
 [[package]]
 name = "aiofile"
