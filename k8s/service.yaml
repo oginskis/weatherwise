@@ -4,7 +4,7 @@ metadata:
   name: weather-news
   namespace: weather-news
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: weather-news
   ports:
