@@ -26,6 +26,13 @@ def _load_css() -> None:
     st.html(f"<style>{css}</style>")
 
 
+def _get_event_loop() -> asyncio.AbstractEventLoop:
+    """Get or create a persistent event loop for async agent calls."""
+    if "event_loop" not in st.session_state:
+        st.session_state.event_loop = asyncio.new_event_loop()
+    return st.session_state.event_loop
+
+
 async def _ask_agent(user_message: str) -> AgentResponse:
     """Send a message to the PydanticAI agent and return structured output."""
     async with agent:
@@ -73,7 +80,8 @@ def main() -> None:
         with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             with st.spinner("Thinking..."):
                 try:
-                    response = asyncio.run(_ask_agent(prompt))
+                    loop = _get_event_loop()
+                    response = loop.run_until_complete(_ask_agent(prompt))
                     _render_response(response)
                     st.session_state.messages.append(
                         {

@@ -17,7 +17,13 @@ logger = logging.getLogger(__name__)
 
 NEWS_MCP_HOST: str = "127.0.0.1"
 
-mcp = FastMCP("news-server", stateless_http=True, json_response=True)
+mcp = FastMCP(
+    "news-server",
+    host=NEWS_MCP_HOST,
+    port=NEWS_MCP_PORT,
+    stateless_http=True,
+    json_response=True,
+)
 
 _client: GNewsClient | None = None
 
@@ -91,7 +97,7 @@ async def get_top_headlines(
 def main() -> None:
     """Entry point for the news MCP server."""
     logging.basicConfig(level=logging.INFO, stream=sys.stderr)
-    mcp.run(transport="streamable-http", host=NEWS_MCP_HOST, port=NEWS_MCP_PORT)
+    mcp.run(transport="streamable-http")
 
 
 if __name__ == "__main__":

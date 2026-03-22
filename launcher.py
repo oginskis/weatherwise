@@ -75,16 +75,30 @@ def _start_streamlit() -> subprocess.Popen[bytes]:
 def _wait_for_server(port: int, name: str) -> bool:
     """Wait until a server responds on the given port."""
     url = f"http://localhost:{port}/mcp"
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+    }
     deadline = time.monotonic() + HEALTH_CHECK_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
         try:
             response = httpx.post(
                 url,
-                json={"jsonrpc": "2.0", "method": "initialize", "id": 1},
-                timeout=2.0,
+                headers=headers,
+                json={
+                    "jsonrpc": "2.0",
+                    "method": "initialize",
+                    "id": 1,
+                    "params": {
+                        "protocolVersion": "2025-03-26",
+                        "capabilities": {},
+                        "clientInfo": {"name": "health-check", "version": "0.1.0"},
+                    },
+                },
+                timeout=5.0,
             )
-            if response.status_code in (200, 405, 400):
-                logger.info("%s is ready on port %d", name, port)
+            if response.status_code in (200, 400, 405, 406):
+                logger.info("%s is ready on port %d (status=%d)", name, port, response.status_code)
                 return True
         except httpx.HTTPError:
             pass
