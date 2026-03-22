@@ -6,6 +6,8 @@ from pathlib import Path
 
 import streamlit as st
 
+from pydantic_ai.messages import ModelMessage
+
 from src.agent.agent import agent
 from src.agent.models import AgentResponse
 from src.ui.components.news_card import render_news_cards
@@ -33,11 +35,13 @@ def _get_event_loop() -> asyncio.AbstractEventLoop:
     return st.session_state.event_loop
 
 
-async def _ask_agent(user_message: str) -> AgentResponse:
-    """Send a message to the PydanticAI agent and return structured output."""
+async def _ask_agent(
+    user_message: str, message_history: list[ModelMessage] | None = None
+) -> tuple[AgentResponse, list[ModelMessage]]:
+    """Send a message to the PydanticAI agent and return structured output + updated history."""
     async with agent:
-        result = await agent.run(user_message)
-    return result.output
+        result = await agent.run(user_message, message_history=message_history)
+    return result.output, result.all_messages()
 
 
 def _render_response(response: AgentResponse) -> None:
@@ -56,9 +60,11 @@ def main() -> None:
     _load_css()
     st.title(APP_TITLE)
 
-    # Initialize chat history
+    # Initialize chat history and agent message history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "agent_history" not in st.session_state:
+        st.session_state.agent_history: list[ModelMessage] = []
 
     # Display chat history
     for msg in st.session_state.messages:
@@ -81,7 +87,10 @@ def main() -> None:
             with st.spinner("Thinking..."):
                 try:
                     loop = _get_event_loop()
-                    response = loop.run_until_complete(_ask_agent(prompt))
+                    response, updated_history = loop.run_until_complete(
+                        _ask_agent(prompt, st.session_state.agent_history)
+                    )
+                    st.session_state.agent_history = updated_history
                     _render_response(response)
                     st.session_state.messages.append(
                         {
