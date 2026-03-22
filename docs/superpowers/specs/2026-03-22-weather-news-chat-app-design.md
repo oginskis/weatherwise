@@ -130,7 +130,14 @@ agent = Agent(
     LLM_MODEL,
     toolsets=[weather_mcp, news_mcp],
     result_type=AgentResponse,
-    system_prompt="..."
+    system_prompt=(
+        "You are a helpful assistant that answers questions about current weather "
+        "and latest news. Always use the available tools to fetch real-time data — "
+        "never guess or make up weather conditions or news articles. When the user "
+        "asks about weather, use weather tools. When they ask about news, use news "
+        "tools. You may use both in a single response when appropriate. Return "
+        "structured data so the UI can render rich cards."
+    ),
 )
 ```
 
