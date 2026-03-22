@@ -61,28 +61,35 @@ def _render_response(response: AgentResponse) -> None:
         render_news_cards(response.articles)
 
 
-def _process_prompt(prompt: str) -> None:
-    """Send prompt to agent, store response in session state."""
+def _handle_prompt(prompt: str) -> None:
+    """Display user message, call agent with spinner, render response."""
     st.session_state.messages.append({"role": "user", "content": prompt})
-    try:
-        loop = _get_event_loop()
-        response, updated_history = loop.run_until_complete(
-            _ask_agent(prompt, st.session_state.agent_history)
-        )
-        st.session_state.agent_history = updated_history
-        st.session_state.messages.append(
-            {
-                "role": "assistant",
-                "content": response.message,
-                "response": response,
-            }
-        )
-    except Exception as exc:
-        logger.error("Agent call failed: %s", exc)
-        error_msg = f"Sorry, something went wrong: {exc}"
-        st.session_state.messages.append(
-            {"role": "assistant", "content": error_msg}
-        )
+    with st.chat_message("user", avatar=USER_AVATAR):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
+        with st.spinner("Thinking..."):
+            try:
+                loop = _get_event_loop()
+                response, updated_history = loop.run_until_complete(
+                    _ask_agent(prompt, st.session_state.agent_history)
+                )
+                st.session_state.agent_history = updated_history
+                _render_response(response)
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response.message,
+                        "response": response,
+                    }
+                )
+            except Exception as exc:
+                logger.error("Agent call failed: %s", exc)
+                error_msg = f"Sorry, something went wrong: {exc}"
+                st.error(error_msg)
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": error_msg}
+                )
 
 
 def main() -> None:
@@ -95,12 +102,6 @@ def main() -> None:
         st.session_state.messages = []
     if "agent_history" not in st.session_state:
         st.session_state.agent_history: list[ModelMessage] = []
-
-    # Handle pending prompt from conversation starter BEFORE rendering
-    if "pending_prompt" in st.session_state:
-        prompt = st.session_state.pop("pending_prompt")
-        with st.spinner("Thinking..."):
-            _process_prompt(prompt)
 
     # Header
     st.markdown(
@@ -118,8 +119,8 @@ def main() -> None:
             else:
                 st.markdown(msg["content"])
 
-    # Show conversation starters ONLY when chat is empty
-    if not st.session_state.messages:
+    # Show conversation starters only when chat is empty
+    if not st.session_state.messages and "pending_prompt" not in st.session_state:
         cols = st.columns(2)
         for i, starter in enumerate(CONVERSATION_STARTERS):
             with cols[i % 2]:
@@ -131,10 +132,14 @@ def main() -> None:
                     st.session_state["pending_prompt"] = starter["prompt"]
                     st.rerun()
 
+    # Handle pending prompt from conversation starter
+    if "pending_prompt" in st.session_state:
+        prompt = st.session_state.pop("pending_prompt")
+        _handle_prompt(prompt)
+
     # Accept user input
     if prompt := st.chat_input(CHAT_PLACEHOLDER):
-        _process_prompt(prompt)
-        st.rerun()
+        _handle_prompt(prompt)
 
 
 if __name__ == "__main__":
