@@ -4,13 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# MCP server endpoints
-WEATHER_MCP_URL: str = "http://localhost:8080/mcp"
-NEWS_MCP_URL: str = "http://localhost:8081/mcp"
-
 # MCP server ports
 WEATHER_MCP_PORT: int = 8080
 NEWS_MCP_PORT: int = 8081
+
+# MCP server endpoints (derived from ports)
+WEATHER_MCP_URL: str = f"http://localhost:{WEATHER_MCP_PORT}/mcp"
+NEWS_MCP_URL: str = f"http://localhost:{NEWS_MCP_PORT}/mcp"
 
 # Streamlit
 STREAMLIT_PORT: int = 8501

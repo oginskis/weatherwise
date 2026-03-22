@@ -1,4 +1,4 @@
-from __future__ import annotations
+import html
 
 import streamlit as st
 
@@ -33,20 +33,24 @@ def _resolve_icon(conditions: str) -> str:
 def render_weather_card(weather: WeatherData) -> None:
     """Render an inline weather card in Streamlit."""
     icon = _resolve_icon(weather.conditions)
-    html = f"""
+    location = html.escape(weather.location)
+    conditions = html.escape(weather.conditions)
+
+    details = ""
+    if weather.humidity is not None:
+        details += f'<span>💧 {weather.humidity:.0f}%</span>'
+    if weather.wind_speed is not None:
+        details += f'<span>💨 {weather.wind_speed:.1f} km/h</span>'
+
+    markup = f"""
     <div class="weather-card">
         <div class="weather-card-header">
             <span class="weather-icon">{icon}</span>
-            <span class="weather-location">{weather.location}</span>
+            <span class="weather-location">{location}</span>
         </div>
         <div class="weather-card-temp">{weather.temperature:.1f}°C</div>
-        <div class="weather-card-conditions">{weather.conditions}</div>
-        <div class="weather-card-details">
+        <div class="weather-card-conditions">{conditions}</div>
+        <div class="weather-card-details">{details}</div>
+    </div>
     """
-    if weather.humidity is not None:
-        html += f'<span>💧 {weather.humidity:.0f}%</span>'
-    if weather.wind_speed is not None:
-        html += f'<span>💨 {weather.wind_speed:.1f} km/h</span>'
-    html += "</div></div>"
-
-    st.html(html)
+    st.html(markup)

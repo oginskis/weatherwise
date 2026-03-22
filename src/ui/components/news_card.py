@@ -1,4 +1,4 @@
-from __future__ import annotations
+import html
 
 import streamlit as st
 
@@ -7,26 +7,29 @@ from src.agent.models import ArticleData
 
 def render_news_card(article: ArticleData) -> None:
     """Render an inline news article card in Streamlit."""
-    image_html = ""
+    title = html.escape(article.title)
+    description = html.escape(article.description)
+    source = html.escape(article.source)
+    url = html.escape(article.url)
+
+    image_block = ""
     if article.image_url is not None:
-        image_html = (
-            f'<img class="news-card-image" src="{article.image_url}" '
-            f'alt="{article.title}" />'
+        image_url = html.escape(article.image_url)
+        image_block = (
+            f'<img class="news-card-image" src="{image_url}" alt="{title}" />'
         )
 
-    html = f"""
+    markup = f"""
     <div class="news-card">
-        {image_html}
+        {image_block}
         <div class="news-card-body">
-            <a class="news-card-title" href="{article.url}" target="_blank">
-                {article.title}
-            </a>
-            <div class="news-card-description">{article.description}</div>
-            <div class="news-card-source">{article.source}</div>
+            <a class="news-card-title" href="{url}" target="_blank">{title}</a>
+            <div class="news-card-description">{description}</div>
+            <div class="news-card-source">{source}</div>
         </div>
     </div>
     """
-    st.html(html)
+    st.html(markup)
 
 
 def render_news_cards(articles: list[ArticleData]) -> None:

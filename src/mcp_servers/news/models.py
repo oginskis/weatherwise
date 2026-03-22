@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any
+from typing import Any, Self
 
 from pydantic import BaseModel
 
@@ -14,7 +12,7 @@ class Article(BaseModel):
     published_at: str
 
     @classmethod
-    def from_gnews(cls, data: dict[str, Any]) -> Article:
+    def from_gnews(cls, data: dict[str, Any]) -> Self:
         source = data.get("source", {})
         return cls(
             title=data["title"],
@@ -31,7 +29,7 @@ class SearchResponse(BaseModel):
     articles: list[Article]
 
     @classmethod
-    def from_gnews(cls, data: dict[str, Any]) -> SearchResponse:
+    def from_gnews(cls, data: dict[str, Any]) -> Self:
         articles = [
             Article.from_gnews(article)
             for article in data.get("articles", [])

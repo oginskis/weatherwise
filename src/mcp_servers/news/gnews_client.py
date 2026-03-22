@@ -1,16 +1,16 @@
-from __future__ import annotations
-
 import logging
 
 import httpx
 
+from src.agent.config import (
+    GNEWS_BASE_URL,
+    GNEWS_DEFAULT_LANG,
+    GNEWS_DEFAULT_MAX_RESULTS,
+    GNEWS_REQUEST_TIMEOUT_SECONDS,
+)
 from .models import SearchResponse
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_TIMEOUT_SECONDS: float = 10.0
-DEFAULT_LANG: str = "en"
-DEFAULT_MAX_RESULTS: int = 5
 
 
 class GNewsAPIError(Exception):
@@ -23,8 +23,8 @@ class GNewsClient:
     def __init__(
         self,
         api_key: str,
-        base_url: str = "https://gnews.io/api/v4",
-        timeout: float = DEFAULT_TIMEOUT_SECONDS,
+        base_url: str = GNEWS_BASE_URL,
+        timeout: float = GNEWS_REQUEST_TIMEOUT_SECONDS,
     ) -> None:
         self._api_key = api_key
         self._base_url = base_url
@@ -33,8 +33,8 @@ class GNewsClient:
     async def search(
         self,
         query: str,
-        lang: str = DEFAULT_LANG,
-        max_results: int = DEFAULT_MAX_RESULTS,
+        lang: str = GNEWS_DEFAULT_LANG,
+        max_results: int = GNEWS_DEFAULT_MAX_RESULTS,
     ) -> SearchResponse:
         """Search for news articles by keyword."""
         params = {
@@ -49,8 +49,8 @@ class GNewsClient:
         self,
         category: str | None = None,
         country: str | None = None,
-        lang: str = DEFAULT_LANG,
-        max_results: int = DEFAULT_MAX_RESULTS,
+        lang: str = GNEWS_DEFAULT_LANG,
+        max_results: int = GNEWS_DEFAULT_MAX_RESULTS,
     ) -> SearchResponse:
         """Get top headlines, optionally filtered by category or country."""
         params: dict[str, str | int] = {

@@ -1,7 +1,5 @@
 """Single entry point to start Weather MCP, News MCP, and Streamlit."""
 
-from __future__ import annotations
-
 import logging
 import signal
 import subprocess
@@ -124,7 +122,11 @@ def main() -> None:
         for proc in reversed(processes):
             proc.terminate()
         for proc in reversed(processes):
-            proc.wait(timeout=5)
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                logger.warning("Process %d did not stop, killing it", proc.pid)
+                proc.kill()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, _shutdown)

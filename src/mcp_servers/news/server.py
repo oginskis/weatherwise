@@ -1,17 +1,12 @@
-from __future__ import annotations
-
 import json
 import logging
-import os
 import sys
 
-from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-from src.agent.config import NEWS_MCP_PORT
+from src.agent.config import GNEWS_API_KEY, GNEWS_DEFAULT_LANG, GNEWS_DEFAULT_MAX_RESULTS, NEWS_MCP_PORT
 from .gnews_client import GNewsAPIError, GNewsClient
-
-load_dotenv()
+from .models import SearchResponse
 
 logger = logging.getLogger(__name__)
 
@@ -32,17 +27,23 @@ def _get_client() -> GNewsClient:
     """Lazily initialize the GNews client."""
     global _client
     if _client is None:
-        api_key = os.environ.get("GNEWS_API_KEY", "")
-        if not api_key:
-            logger.error("GNEWS_API_KEY environment variable is not set")
-            raise RuntimeError("GNEWS_API_KEY is required")
-        _client = GNewsClient(api_key=api_key)
+        _client = GNewsClient(api_key=GNEWS_API_KEY)
     return _client
+
+
+def _serialize_response(response: SearchResponse) -> str:
+    """Serialize a SearchResponse to JSON string."""
+    return json.dumps(
+        [article.model_dump() for article in response.articles],
+        ensure_ascii=False,
+    )
 
 
 @mcp.tool()
 async def search_news(
-    query: str, lang: str = "en", max_results: int = 5
+    query: str,
+    lang: str = GNEWS_DEFAULT_LANG,
+    max_results: int = GNEWS_DEFAULT_MAX_RESULTS,
 ) -> str:
     """Search for news articles by keyword.
 
@@ -57,19 +58,15 @@ async def search_news(
     except GNewsAPIError as exc:
         logger.error("search_news failed for query=%s: %s", query, exc)
         return json.dumps({"error": str(exc)})
-
-    return json.dumps(
-        [article.model_dump() for article in response.articles],
-        ensure_ascii=False,
-    )
+    return _serialize_response(response)
 
 
 @mcp.tool()
 async def get_top_headlines(
     category: str | None = None,
     country: str | None = None,
-    lang: str = "en",
-    max_results: int = 5,
+    lang: str = GNEWS_DEFAULT_LANG,
+    max_results: int = GNEWS_DEFAULT_MAX_RESULTS,
 ) -> str:
     """Get top news headlines, optionally filtered by category or country.
 
@@ -87,11 +84,7 @@ async def get_top_headlines(
     except GNewsAPIError as exc:
         logger.error("get_top_headlines failed: %s", exc)
         return json.dumps({"error": str(exc)})
-
-    return json.dumps(
-        [article.model_dump() for article in response.articles],
-        ensure_ascii=False,
-    )
+    return _serialize_response(response)
 
 
 def main() -> None:

@@ -1,14 +1,14 @@
-from __future__ import annotations
-
 import asyncio
 import logging
 from pathlib import Path
 
+import httpx
 import streamlit as st
-
+from pydantic_ai import exceptions as pydantic_ai_exceptions
 from pydantic_ai.messages import ModelMessage
 
 from src.agent.agent import agent
+from src.mcp_servers.news.gnews_client import GNewsAPIError
 from src.agent.models import AgentResponse
 from src.ui.components.news_card import render_news_cards
 from src.ui.components.weather_card import render_weather_card
@@ -83,7 +83,7 @@ def _handle_prompt(prompt: str) -> None:
                         "response": response,
                     }
                 )
-            except Exception as exc:
+            except (httpx.HTTPError, GNewsAPIError, pydantic_ai_exceptions.UserError, OSError) as exc:
                 logger.error("Agent call failed: %s", exc)
                 error_msg = f"Sorry, something went wrong: {exc}"
                 st.error(error_msg)
