@@ -21,6 +21,13 @@ CHAT_PLACEHOLDER: str = "Ask about weather or news..."
 ASSISTANT_AVATAR: str = "🤖"
 USER_AVATAR: str = "👤"
 
+CONVERSATION_STARTERS: list[dict[str, str]] = [
+    {"label": "Weather in New York", "icon": "🌤️", "prompt": "What's the weather like in New York right now?"},
+    {"label": "Today's tech news", "icon": "💻", "prompt": "What are the latest technology news headlines?"},
+    {"label": "Weather in Tokyo", "icon": "🗼", "prompt": "What's the current weather in Tokyo?"},
+    {"label": "World business news", "icon": "📈", "prompt": "What's happening in business news today?"},
+]
+
 
 def _load_css() -> None:
     """Load custom CSS into the Streamlit app."""
@@ -54,17 +61,54 @@ def _render_response(response: AgentResponse) -> None:
         render_news_cards(response.articles)
 
 
+def _handle_user_prompt(prompt: str) -> None:
+    """Process a user prompt: send to agent, render response, update history."""
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user", avatar=USER_AVATAR):
+        st.markdown(prompt)
+
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
+        with st.spinner("Thinking..."):
+            try:
+                loop = _get_event_loop()
+                response, updated_history = loop.run_until_complete(
+                    _ask_agent(prompt, st.session_state.agent_history)
+                )
+                st.session_state.agent_history = updated_history
+                _render_response(response)
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": response.message,
+                        "response": response,
+                    }
+                )
+            except Exception as exc:
+                logger.error("Agent call failed: %s", exc)
+                error_msg = f"Sorry, something went wrong: {exc}"
+                st.error(error_msg)
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": error_msg}
+                )
+
+
 def main() -> None:
     """Streamlit chat application entry point."""
     st.set_page_config(page_title=APP_TITLE, page_icon="🌤️", layout="centered")
     _load_css()
-    st.title(APP_TITLE)
 
-    # Initialize chat history and agent message history
+    # Initialize session state
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "agent_history" not in st.session_state:
         st.session_state.agent_history: list[ModelMessage] = []
+
+    # Header
+    st.markdown(
+        '<h1 class="app-header">🌤️ Weather & News Assistant</h1>',
+        unsafe_allow_html=True,
+    )
+    st.caption("Real-time weather and news powered by AI")
 
     # Display chat history
     for msg in st.session_state.messages:
@@ -75,37 +119,29 @@ def main() -> None:
             else:
                 st.markdown(msg["content"])
 
+    # Show conversation starters when chat is empty
+    if not st.session_state.messages:
+        st.markdown('<div class="starters-container">', unsafe_allow_html=True)
+        cols = st.columns(2)
+        for i, starter in enumerate(CONVERSATION_STARTERS):
+            with cols[i % 2]:
+                if st.button(
+                    f"{starter['icon']}  {starter['label']}",
+                    key=f"starter_{i}",
+                    use_container_width=True,
+                ):
+                    st.session_state["pending_prompt"] = starter["prompt"]
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Handle pending prompt from conversation starter
+    if "pending_prompt" in st.session_state:
+        prompt = st.session_state.pop("pending_prompt")
+        _handle_user_prompt(prompt)
+
     # Accept user input
     if prompt := st.chat_input(CHAT_PLACEHOLDER):
-        # Display user message
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user", avatar=USER_AVATAR):
-            st.markdown(prompt)
-
-        # Get agent response
-        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
-            with st.spinner("Thinking..."):
-                try:
-                    loop = _get_event_loop()
-                    response, updated_history = loop.run_until_complete(
-                        _ask_agent(prompt, st.session_state.agent_history)
-                    )
-                    st.session_state.agent_history = updated_history
-                    _render_response(response)
-                    st.session_state.messages.append(
-                        {
-                            "role": "assistant",
-                            "content": response.message,
-                            "response": response,
-                        }
-                    )
-                except Exception as exc:
-                    logger.error("Agent call failed: %s", exc)
-                    error_msg = f"Sorry, something went wrong: {exc}"
-                    st.error(error_msg)
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": error_msg}
-                    )
+        _handle_user_prompt(prompt)
 
 
 if __name__ == "__main__":
