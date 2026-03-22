@@ -129,7 +129,7 @@ news_mcp = MCPServerStreamableHTTP(NEWS_MCP_URL)
 agent = Agent(
     LLM_MODEL,
     toolsets=[weather_mcp, news_mcp],
-    result_type=AgentResponse,
+    output_type=AgentResponse,
     system_prompt=(
         "You are a helpful assistant that answers questions about current weather "
         "and latest news. Always use the available tools to fetch real-time data — "
