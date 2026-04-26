@@ -11,6 +11,8 @@ dependencies = [
     "streamlit",
     "python-dotenv",
     "pydantic",
+    "pandas>=2.2",
+    "pyarrow>=15",
 ]
 
 [dependency-groups]

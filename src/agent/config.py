@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -24,3 +25,11 @@ GNEWS_BASE_URL: str = "https://gnews.io/api/v4"
 GNEWS_DEFAULT_LANG: str = "en"
 GNEWS_DEFAULT_MAX_RESULTS: int = 5
 GNEWS_REQUEST_TIMEOUT_SECONDS: float = 10.0
+
+# Disasters MCP
+DISASTERS_MCP_PORT: int = 8082
+DISASTERS_MCP_URL: str = f"http://localhost:{DISASTERS_MCP_PORT}/mcp"
+DISASTERS_CSV_PATH: Path = Path("data/emdat_disasters_1900_2021.csv")
+DISASTERS_MIN_YEAR_FOR_LOCATION_SUMMARY: int = 1980
+DISASTERS_DEFAULT_QUERY_LIMIT: int = 20
+DISASTERS_DEFAULT_TOP_N: int = 10
