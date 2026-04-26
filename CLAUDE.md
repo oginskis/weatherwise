@@ -38,7 +38,6 @@ graph TD
     OpenMeteo["🌍 Open-Meteo API"]
     GNews["📡 GNews.io API"]
     EMDAT[("🗂️ EM-DAT CSV<br/>1900-2021, 16k rows")]
-    CardBuilder["🧱 Disaster Card Builder<br/><i>deterministic, no LLM</i>"]
 
     UI -->|async| Agent
     Agent -->|MCP| WeatherMCP
@@ -47,15 +46,12 @@ graph TD
     WeatherMCP --> OpenMeteo
     NewsMCP --> GNews
     DisastersMCP --> EMDAT
-    Agent -.tool returns.-> CardBuilder
-    CardBuilder -->|disaster card| UI
 
     style UI fill:#667eea,stroke:#5a6fd6,color:#fff
     style Agent fill:#764ba2,stroke:#6a4292,color:#fff
     style WeatherMCP fill:#4facfe,stroke:#4495e6,color:#fff
     style NewsMCP fill:#43e97b,stroke:#3cd06e,color:#fff
     style DisastersMCP fill:#fb923c,stroke:#ea7c20,color:#fff
-    style CardBuilder fill:#a78bfa,stroke:#8b6fd6,color:#fff
     style OpenMeteo fill:#f5f5f5,stroke:#ddd,color:#333
     style GNews fill:#f5f5f5,stroke:#ddd,color:#333
     style EMDAT fill:#f5f5f5,stroke:#ddd,color:#333
