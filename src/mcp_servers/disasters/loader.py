@@ -3,13 +3,10 @@
 Used at MCP server startup; the resulting DataFrame becomes the singleton
 backing store for the repository layer.
 """
-from __future__ import annotations
-
 import logging
 import re
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -59,7 +56,7 @@ def _parse_coord(series: pd.Series, *, pos: str, neg: str) -> pd.Series:
     pos_upper, neg_upper = pos.upper(), neg.upper()
 
     def _convert(raw: object) -> float:
-        if raw is None or (isinstance(raw, float) and np.isnan(raw)):
+        if pd.isna(raw):
             return float("nan")
         text = str(raw).strip()
         if not text:
