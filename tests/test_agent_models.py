@@ -1,4 +1,4 @@
-from src.agent.models import AgentResponse, ArticleData, WeatherData
+from src.agent.models import AgentResponse, ArticleData, DisasterSummaryView, WeatherData
 
 
 def test_agent_response_weather_only() -> None:
@@ -56,3 +56,32 @@ def test_agent_response_both() -> None:
     assert response.articles is not None
     assert response.weather.humidity == 80.0
     assert response.articles[0].image_url == "https://example.com/img.jpg"
+
+
+def test_disaster_summary_view_round_trip() -> None:
+    view = DisasterSummaryView(
+        total_events=3,
+        time_span="1995–2019",
+        top_types=[("Earthquake", 2), ("Storm", 1)],
+        deadliest_event_summary="2011 Earthquake (Tohoku, 19,846 deaths)",
+    )
+    rehydrated = DisasterSummaryView.model_validate_json(view.model_dump_json())
+    assert rehydrated.total_events == 3
+    assert rehydrated.top_types == [("Earthquake", 2), ("Storm", 1)]
+
+
+def test_agent_response_disasters_field_optional() -> None:
+    response = AgentResponse(message="hello")
+    assert response.disasters is None
+
+
+def test_agent_response_with_disaster_summary() -> None:
+    summary = DisasterSummaryView(
+        total_events=1,
+        time_span="2010",
+        top_types=[("Earthquake", 1)],
+        deadliest_event_summary="2010 Earthquake (Port-au-Prince, 222,570 deaths)",
+    )
+    response = AgentResponse(message="Haiti has had one major disaster.", disasters=summary)
+    assert response.disasters is not None
+    assert response.disasters.total_events == 1
