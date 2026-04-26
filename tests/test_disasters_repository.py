@@ -203,3 +203,49 @@ def test_stats_with_country_filter(repo) -> None:
     )
     types = {row.group_value for row in response.rows}
     assert types == {"Storm", "Wildfire"}
+
+
+def test_location_summary_japan_populated(repo) -> None:
+    summary = repo.location_summary(country="Japan", location_contains=None)
+    assert summary.country == "Japan"
+    assert summary.location_filter is None
+    assert summary.total_events == 3
+    assert summary.time_span == "1995–2019"
+    assert summary.deadliest_event is not None
+    assert summary.deadliest_event.year == 2011
+    assert summary.deadliest_event.disaster_type == "Earthquake"
+
+
+def test_location_summary_top_types_capped_at_3(repo) -> None:
+    summary = repo.location_summary(country="USA", location_contains=None)
+    assert len(summary.top_types) <= 3
+    types = {item.disaster_type for item in summary.top_types}
+    assert "Storm" in types  # USA has 2 storms + 1 wildfire
+
+
+def test_location_summary_quiet_country_returns_empty(repo) -> None:
+    """Latvia's only event is 1969 — outside the 1980+ default window."""
+    summary = repo.location_summary(country="Latvia", location_contains=None)
+    assert summary.total_events == 0
+    assert summary.time_span is None
+    assert summary.top_types == []
+    assert summary.deadliest_event is None
+
+
+def test_location_summary_unknown_country_returns_empty(repo) -> None:
+    summary = repo.location_summary(country="Atlantis", location_contains=None)
+    assert summary.total_events == 0
+
+
+def test_location_summary_location_substring_narrows_results(repo) -> None:
+    summary = repo.location_summary(country="USA", location_contains="florida")
+    assert summary.total_events == 1
+    assert summary.location_filter == "florida"
+
+
+def test_location_summary_overrides_min_year_for_tests(repo) -> None:
+    """Repository method allows min_year override even though MCP tool does not."""
+    summary = repo.location_summary(
+        country="Latvia", location_contains=None, min_year=1900,
+    )
+    assert summary.total_events == 1  # 1969 storm now in window

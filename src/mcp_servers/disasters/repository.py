@@ -14,7 +14,14 @@ from src.agent.config import (
     DISASTERS_MIN_YEAR_FOR_LOCATION_SUMMARY,
 )
 from .loader import load_disasters
-from .models import DisasterEvent, QueryResponse, StatsResponse, StatsRow
+from .models import (
+    DisasterEvent,
+    DisasterTypeCount,
+    LocationSummary,
+    QueryResponse,
+    StatsResponse,
+    StatsRow,
+)
 
 _VALID_GROUP_BY: dict[str, str] = {
     "year": "Year",
@@ -164,6 +171,65 @@ class DisasterRepository:
             for idx, row in combined.iterrows()
         ]
         return StatsResponse(group_by=group_by, metric=metric, rows=rows)
+
+    def location_summary(
+        self,
+        *,
+        country: str,
+        location_contains: str | None,
+        min_year: int = DISASTERS_MIN_YEAR_FOR_LOCATION_SUMMARY,
+    ) -> LocationSummary:
+        """Summarize disasters at a location for the weather-flow context.
+
+        Defaults to events from ``min_year`` onward to mitigate pre-1970 reporting
+        bias. Returns an empty summary (total_events=0) when nothing matches.
+        """
+        matched = self._apply_filters(
+            country=country,
+            disaster_type=None,
+            location_contains=location_contains,
+            start_year=min_year,
+            end_year=None,
+        )
+
+        if len(matched) == 0:
+            return LocationSummary(
+                country=country,
+                location_filter=location_contains.strip().lower() if location_contains else None,
+                total_events=0,
+                time_span=None,
+                top_types=[],
+                deadliest_event=None,
+            )
+
+        years = matched["Year"]
+        time_span = f"{int(years.min())}–{int(years.max())}"
+
+        type_counts = (
+            matched["Disaster Type"]
+            .astype("string")
+            .value_counts()
+            .head(3)
+        )
+        top_types = [
+            DisasterTypeCount(disaster_type=str(name), count=int(value))
+            for name, value in type_counts.items()
+        ]
+
+        deadliest_idx = matched["Total Deaths"].idxmax()
+        if pd.isna(deadliest_idx):
+            deadliest_event = None
+        else:
+            deadliest_event = _row_to_event(matched.loc[deadliest_idx].to_dict())
+
+        return LocationSummary(
+            country=country,
+            location_filter=location_contains.strip().lower() if location_contains else None,
+            total_events=int(len(matched)),
+            time_span=time_span,
+            top_types=top_types,
+            deadliest_event=deadliest_event,
+        )
 
 
 def _row_to_event(row: dict) -> DisasterEvent:
