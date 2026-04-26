@@ -154,6 +154,13 @@ def _handle_prompt(prompt: str) -> None:
                 )
 
 
+def _reset_conversation() -> None:
+    """Clear chat history and pending prompt so the starters reappear."""
+    st.session_state.messages = []
+    st.session_state.agent_history = []
+    st.session_state.pop("pending_prompt", None)
+
+
 def main() -> None:
     """Streamlit chat application entry point."""
     st.set_page_config(page_title=APP_TITLE, page_icon="🌤️", layout="centered")
@@ -171,6 +178,12 @@ def main() -> None:
         unsafe_allow_html=True,
     )
     st.caption("Real-time weather and news powered by AI")
+
+    # "Back to conversation starters" — only shown once a chat is in progress.
+    if st.session_state.messages:
+        if st.button("← New conversation", key="reset_chat"):
+            _reset_conversation()
+            st.rerun()
 
     # Display chat history
     for msg in st.session_state.messages:
