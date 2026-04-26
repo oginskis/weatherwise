@@ -16,7 +16,7 @@ CONVERSATION_STARTERS: list[dict[str, str]] = [
     {"label": "Weather in New York", "icon": "🌤️", "prompt": "What's the weather like in New York right now?"},
     {"label": "Today's tech news", "icon": "💻", "prompt": "What are the latest technology news headlines?"},
     {"label": "Weather in Tokyo", "icon": "🗼", "prompt": "What's the current weather in Tokyo?"},
-    {"label": "World business news", "icon": "📈", "prompt": "What's happening in business news today?"},
+    {"label": "Deadliest earthquakes", "icon": "🪨", "prompt": "What were the deadliest earthquakes ever recorded?"},
 ]
 
 
@@ -41,6 +41,7 @@ def _get_agent():
 
 def _render_response(response) -> None:
     """Render the agent response with text and optional cards."""
+    from src.ui.components.disaster_card import render_disaster_card
     from src.ui.components.news_card import render_news_cards
     from src.ui.components.weather_card import render_weather_card
 
@@ -50,6 +51,8 @@ def _render_response(response) -> None:
         render_weather_card(response.weather)
     if response.articles is not None:
         render_news_cards(response.articles)
+    if response.disasters is not None:
+        render_disaster_card(response.disasters)
 
 
 def _handle_prompt(prompt: str) -> None:
