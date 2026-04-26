@@ -57,8 +57,15 @@ def _render_response(response) -> None:
 
 def _handle_prompt(prompt: str) -> None:
     """Display user message, call agent with spinner, render response."""
+    import asyncio
+
     import httpx
     from pydantic_ai import exceptions as pydantic_ai_exceptions
+    from src.agent.config import (
+        AGENT_MAX_RETRIES,
+        AGENT_RETRY_BASE_DELAY_SECONDS,
+        AGENT_RETRYABLE_STATUS_CODES,
+    )
     from src.mcp_servers.news.gnews_client import GNewsAPIError
 
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -72,11 +79,28 @@ def _handle_prompt(prompt: str) -> None:
                 loop = _get_event_loop()
 
                 async def _run():
-                    async with agent:
-                        result = await agent.run(
-                            prompt, message_history=st.session_state.agent_history
-                        )
-                    return result.output, result.all_messages()
+                    for attempt in range(AGENT_MAX_RETRIES + 1):
+                        try:
+                            async with agent:
+                                result = await agent.run(
+                                    prompt, message_history=st.session_state.agent_history
+                                )
+                            return result.output, result.all_messages()
+                        except pydantic_ai_exceptions.ModelHTTPError as exc:
+                            if (
+                                exc.status_code not in AGENT_RETRYABLE_STATUS_CODES
+                                or attempt == AGENT_MAX_RETRIES
+                            ):
+                                raise
+                            delay = AGENT_RETRY_BASE_DELAY_SECONDS * (2 ** attempt)
+                            logger.warning(
+                                "Model returned %d; retrying in %.1fs (attempt %d/%d)",
+                                exc.status_code,
+                                delay,
+                                attempt + 1,
+                                AGENT_MAX_RETRIES,
+                            )
+                            await asyncio.sleep(delay)
 
                 response, updated_history = loop.run_until_complete(_run())
                 st.session_state.agent_history = updated_history
@@ -87,6 +111,16 @@ def _handle_prompt(prompt: str) -> None:
                         "content": response.message,
                         "response": response,
                     }
+                )
+            except pydantic_ai_exceptions.ModelHTTPError as exc:
+                logger.error("Agent model unavailable after retries: %s", exc)
+                error_msg = (
+                    "The AI model is currently overloaded and didn't respond after a "
+                    "few retries. Please try again in a moment."
+                )
+                st.error(error_msg)
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": error_msg}
                 )
             except (httpx.HTTPError, GNewsAPIError, pydantic_ai_exceptions.UserError, OSError) as exc:
                 logger.error("Agent call failed: %s", exc)
