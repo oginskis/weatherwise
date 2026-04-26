@@ -1,16 +1,17 @@
 import math
+from pathlib import Path
 
 import pandas as pd
 
 from src.mcp_servers.disasters.loader import _parse_coord, load_disasters
 
 
-def test_load_disasters_reads_all_rows(disasters_fixture_path) -> None:
+def test_load_disasters_reads_all_rows(disasters_fixture_path: Path) -> None:
     df = load_disasters(disasters_fixture_path)
     assert len(df) == 12
 
 
-def test_load_disasters_applies_categorical_dtypes(disasters_fixture_path) -> None:
+def test_load_disasters_applies_categorical_dtypes(disasters_fixture_path: Path) -> None:
     df = load_disasters(disasters_fixture_path)
     for col in ["Disaster Type", "Disaster Subgroup", "Continent", "ISO", "Country"]:
         assert isinstance(df[col].dtype, pd.CategoricalDtype), (
@@ -18,7 +19,7 @@ def test_load_disasters_applies_categorical_dtypes(disasters_fixture_path) -> No
         )
 
 
-def test_load_disasters_adds_lowercase_helpers(disasters_fixture_path) -> None:
+def test_load_disasters_adds_lowercase_helpers(disasters_fixture_path: Path) -> None:
     df = load_disasters(disasters_fixture_path)
     assert "country_lc" in df.columns
     assert "location_lc" in df.columns
@@ -30,7 +31,7 @@ def test_load_disasters_adds_lowercase_helpers(disasters_fixture_path) -> None:
     assert tokyo_mask.sum() == 1
 
 
-def test_load_disasters_parses_lat_lon_floats(disasters_fixture_path) -> None:
+def test_load_disasters_parses_lat_lon_floats(disasters_fixture_path: Path) -> None:
     df = load_disasters(disasters_fixture_path)
     # Plain decimal: row with Latitude="38.32" (Tohoku)
     tohoku = df[df["Event Name"] == "Tohoku"].iloc[0]

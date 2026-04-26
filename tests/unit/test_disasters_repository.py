@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from src.mcp_servers.disasters.loader import load_disasters
@@ -8,7 +10,7 @@ from src.mcp_servers.disasters.repository import (
 
 
 @pytest.fixture
-def repo(disasters_fixture_path) -> DisasterRepository:
+def repo(disasters_fixture_path: Path) -> DisasterRepository:
     return DisasterRepository(load_disasters(disasters_fixture_path))
 
 
@@ -26,6 +28,12 @@ def test_apply_filters_by_iso_fallback(repo) -> None:
 
 def test_apply_filters_full_country_string(repo) -> None:
     rows = repo._apply_filters(country="United States of America (the)")
+    assert len(rows) == 3
+
+
+def test_apply_filters_country_substring_short_form(repo) -> None:
+    """'United States' must match the EM-DAT 'United States of America (the)'."""
+    rows = repo._apply_filters(country="United States")
     assert len(rows) == 3
 
 
@@ -55,14 +63,28 @@ def test_apply_filters_location_substring_without_country(repo) -> None:
 
 
 def test_apply_filters_year_range(repo) -> None:
+    """Inclusive range; off-by-one boundaries would fail this exact-count assertion."""
     rows = repo._apply_filters(start_year=2010, end_year=2015)
     years = sorted(rows["Year"].tolist())
-    assert all(2010 <= y <= 2015 for y in years)
+    # Fixture matches: Haiti 2010, Tohoku 2011, Australia flood 2011 (year=2011).
+    assert len(rows) == 3, f"expected 3 rows in 2010-2015, got {len(rows)}: years={years}"
+    assert years == [2010, 2011, 2011]
 
 
 def test_apply_filters_invalid_year_range_raises(repo) -> None:
     with pytest.raises(DisasterRepositoryError):
         repo._apply_filters(start_year=2020, end_year=2010)
+
+
+def test_apply_filters_three_way_combination(repo) -> None:
+    """Country + location_contains + start_year all AND together."""
+    rows = repo._apply_filters(
+        country="India", location_contains="bengal", start_year=2000
+    )
+    # Fixture: India 1900 Bengal drought (excluded by start_year),
+    # India 2019 Bengal flood (included).
+    assert len(rows) == 1
+    assert int(rows.iloc[0]["Year"]) == 2019
 
 
 def test_query_returns_query_response(repo) -> None:
@@ -126,9 +148,11 @@ def test_stats_count_by_type_descending(repo) -> None:
         country=None, disaster_type=None,
         start_year=None, end_year=None, top_n=10,
     )
-    # sorted descending by count
-    counts = [(row.group_value, int(row.metric_value)) for row in response.rows]
-    assert counts[0][1] >= counts[-1][1]
+    # Strict descending invariant — every row's metric must be >= the next.
+    values = [row.metric_value for row in response.rows]
+    assert values == sorted(values, reverse=True), (
+        f"rows must be sorted descending by metric_value; got {values}"
+    )
     storm_row = next(r for r in response.rows if r.group_value == "Storm")
     assert storm_row.metric_value == 4.0  # Hagibis, Katrina, Harvey, Latvia 1969
 
@@ -164,6 +188,24 @@ def test_stats_total_damages_returns_thousands_usd(repo) -> None:
     japan_row = next(r for r in response.rows if r.group_value == "Japan")
     # Tohoku 210M + Kobe 100M + Hagibis 17M = 327M (thousands USD)
     assert japan_row.metric_value == 327_000_000.0
+
+
+def test_stats_by_continent(repo) -> None:
+    """The 'continent' group_by is in _VALID_GROUP_BY; verify it groups correctly."""
+    response = repo.stats(
+        group_by="continent", metric="count",
+        country=None, disaster_type=None,
+        start_year=None, end_year=None, top_n=10,
+    )
+    rows_by_continent = {row.group_value: int(row.metric_value) for row in response.rows}
+    # Fixture: 5 events in Asia (3 Japan + 2 India), 4 in Americas (3 USA + 1 Haiti),
+    # 2 in Oceania (Australia), 1 in Europe (Latvia).
+    assert rows_by_continent == {
+        "Asia": 5,
+        "Americas": 4,
+        "Oceania": 2,
+        "Europe": 1,
+    }
 
 
 def test_stats_by_decade(repo) -> None:
@@ -216,11 +258,19 @@ def test_location_summary_japan_populated(repo) -> None:
     assert summary.deadliest_event.disaster_type == "Earthquake"
 
 
-def test_location_summary_top_types_capped_at_3(repo) -> None:
+def test_location_summary_top_types_for_usa(repo) -> None:
+    """USA has 2 distinct disaster types post-1980 (Storm, Wildfire); both must appear."""
     summary = repo.location_summary(country="USA", location_contains=None)
-    assert len(summary.top_types) <= 3
     types = {item.disaster_type for item in summary.top_types}
-    assert "Storm" in types  # USA has 2 storms + 1 wildfire
+    assert types == {"Storm", "Wildfire"}
+    storm = next(item for item in summary.top_types if item.disaster_type == "Storm")
+    wildfire = next(item for item in summary.top_types if item.disaster_type == "Wildfire")
+    assert storm.count == 2  # Katrina + Harvey
+    assert wildfire.count == 1  # Camp Fire
+    # The 3-cap itself is exercised by disaster_stats top_n in
+    # test_stats_top_n_caps_results — the fixture has no country with 4+
+    # post-1980 disaster types, so it can't be exercised through
+    # location_summary.
 
 
 def test_location_summary_quiet_country_returns_empty(repo) -> None:

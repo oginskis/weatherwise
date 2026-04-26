@@ -19,7 +19,13 @@ def test_disaster_event_full_fields() -> None:
     )
     assert event.year == 2011
     assert event.country == "Japan"
+    assert event.location == "Tohoku"
+    assert event.disaster_type == "Earthquake"
+    assert event.disaster_subtype is None
     assert event.total_deaths == 19846
+    assert event.total_affected == 469000
+    assert event.total_damages_usd_thousands == 210_000_000.0
+    assert event.event_name == "Tohoku"
 
 
 def test_disaster_event_optional_nullable() -> None:
@@ -83,4 +89,10 @@ def test_stats_response_carries_metric_metadata() -> None:
     )
     payload = json.loads(response.model_dump_json())
     assert payload["group_by"] == "type"
-    assert payload["rows"][0]["group_value"] == "Flood"
+    assert payload["metric"] == "count"
+    assert len(payload["rows"]) == 1
+    assert payload["rows"][0] == {
+        "group_value": "Flood",
+        "metric_value": 2.0,
+        "event_count": 2,
+    }

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -8,7 +9,9 @@ from src.mcp_servers.disasters.repository import DisasterRepository
 
 
 @pytest.fixture(autouse=True)
-def _swap_repository(monkeypatch, disasters_fixture_path) -> None:
+def _swap_repository(
+    monkeypatch: pytest.MonkeyPatch, disasters_fixture_path: Path
+) -> None:
     """Replace the singleton with one backed by the test fixture."""
     repo = DisasterRepository(load_disasters(disasters_fixture_path))
     monkeypatch.setattr(srv, "_get_repository", lambda: repo)
@@ -50,6 +53,14 @@ async def test_location_disaster_summary_populated() -> None:
 @pytest.mark.asyncio
 async def test_disaster_stats_invalid_group_by_returns_error_json() -> None:
     payload = await srv.disaster_stats(group_by="quarter", metric="count")
+    parsed = json.loads(payload)
+    assert "error" in parsed
+
+
+@pytest.mark.asyncio
+async def test_disaster_stats_invalid_metric_returns_error_json() -> None:
+    """Mirror of the group_by error test — the metric branch is also caught."""
+    payload = await srv.disaster_stats(group_by="type", metric="median_deaths")
     parsed = json.loads(payload)
     assert "error" in parsed
 
