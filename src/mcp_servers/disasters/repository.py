@@ -14,6 +14,7 @@ from src.agent.config import (
     DISASTERS_MIN_YEAR_FOR_LOCATION_SUMMARY,
 )
 from .loader import load_disasters
+from .models import DisasterEvent, QueryResponse
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,76 @@ class DisasterRepository:
             mask &= df["Year"] <= end_year
 
         return df[mask]
+
+    def query(
+        self,
+        *,
+        country: str | None,
+        disaster_type: str | None,
+        location_contains: str | None,
+        start_year: int | None,
+        end_year: int | None,
+        limit: int,
+    ) -> QueryResponse:
+        """Return matching events sorted newest-first, capped at ``limit``."""
+        matched = self._apply_filters(
+            country=country,
+            disaster_type=disaster_type,
+            location_contains=location_contains,
+            start_year=start_year,
+            end_year=end_year,
+        )
+        sort_cols = ["Year", "Start Month", "Start Day"]
+        matched = matched.sort_values(sort_cols, ascending=False, na_position="last")
+        head = matched.head(limit)
+        events = [_row_to_event(row) for row in head.to_dict(orient="records")]
+        return QueryResponse(total_matched=int(len(matched)), events=events)
+
+
+def _row_to_event(row: dict) -> DisasterEvent:
+    """Convert a DataFrame row dict into a DisasterEvent."""
+    return DisasterEvent(
+        year=int(row["Year"]),
+        country=str(row["Country"]),
+        location=_optional_str(row.get("Location")),
+        disaster_type=str(row["Disaster Type"]),
+        disaster_subtype=_optional_str(row.get("Disaster Subtype")),
+        total_deaths=_optional_int(row.get("Total Deaths")),
+        total_affected=_optional_int(row.get("Total Affected")),
+        total_damages_usd_thousands=_optional_float(row.get("Total Damages ('000 US$)")),
+        event_name=_optional_str(row.get("Event Name")),
+    )
+
+
+def _optional_str(value: object) -> str | None:
+    if value is None or value is pd.NA:
+        return None
+    if isinstance(value, float) and pd.isna(value):
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _optional_int(value: object) -> int | None:
+    if value is None or value is pd.NA:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return int(value)
+
+
+def _optional_float(value: object) -> float | None:
+    if value is None or value is pd.NA:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return float(value)
 
 
 _repo: DisasterRepository | None = None
