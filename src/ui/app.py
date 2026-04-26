@@ -179,11 +179,11 @@ def main() -> None:
     )
     st.caption("Real-time weather and news powered by AI")
 
-    # "Back to conversation starters" — only shown once a chat is in progress.
-    if st.session_state.messages:
-        if st.button("← New conversation", key="reset_chat"):
-            _reset_conversation()
-            st.rerun()
+    # Reserve a slot for the "New conversation" button. We can't decide
+    # whether to show it yet — the pending_prompt handler below may still
+    # populate ``st.session_state.messages`` for this run. Fill the slot
+    # at the end of main() once state is finalized.
+    back_button_slot = st.empty()
 
     # Display chat history
     for msg in st.session_state.messages:
@@ -215,6 +215,14 @@ def main() -> None:
     # Accept user input
     if prompt := st.chat_input(CHAT_PLACEHOLDER):
         _handle_prompt(prompt)
+
+    # Fill the reserved slot now that messages have been populated by either
+    # the pending_prompt handler or the chat_input handler.
+    if st.session_state.messages:
+        with back_button_slot.container():
+            if st.button("← New conversation", key="reset_chat"):
+                _reset_conversation()
+                st.rerun()
 
 
 if __name__ == "__main__":
