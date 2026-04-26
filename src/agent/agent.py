@@ -90,6 +90,10 @@ The "message" field should contain a friendly synthesis (2-4 sentences) — \
 what the data shows and why the answer is interesting. Then populate \
 "disasters" with a compact DisasterSummaryView (total_events, time_span, \
 top_types, deadliest_event_summary) so the UI renders a card.
+Example message tone: "Japan has been hit by 47 major disasters since 1980, \
+mostly storms and earthquakes. The deadliest was the 2011 Tohoku earthquake \
+and tsunami, which claimed nearly 20,000 lives — still the costliest natural \
+disaster on record."
 
 WEATHER + DISASTER RULE (ALWAYS APPLIES):
 When the user asks about weather in a specific place, ALWAYS also call \
