@@ -10,6 +10,8 @@ COPY src/ src/
 COPY launcher.py ./
 COPY .streamlit/ .streamlit/
 COPY .env.example .env.example
+# EM-DAT CSV is needed at runtime by the disasters MCP server.
+COPY data/ data/
 
 EXPOSE 8501
 

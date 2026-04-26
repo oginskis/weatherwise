@@ -67,9 +67,16 @@ class DisasterRepository:
         if country is not None:
             country_lc = country.strip().lower()
             country_upper = country.strip().upper()
+            # Match any of: exact lowercase country name; ISO-3 code;
+            # substring of the EM-DAT country name (handles "United States"
+            # vs "United States of America (the)", "Iran" vs "Iran
+            # (Islamic Republic of)", etc.)
             mask &= (
                 (df["country_lc"] == country_lc)
                 | (df["ISO"].astype("string") == country_upper)
+                | df["country_lc"].fillna("").str.contains(
+                    country_lc, regex=False, na=False
+                )
             )
 
         if disaster_type is not None:

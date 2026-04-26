@@ -27,7 +27,15 @@ class DisasterSummaryView(BaseModel):
 
 
 class AgentResponse(BaseModel):
+    """Conversational response returned by the agent.
+
+    Note: there is no ``disasters`` field here. The disaster UI card is
+    built deterministically from the agent's tool returns by
+    :mod:`src.agent.disaster_card` after the run completes. Keeping the
+    LLM out of structured-data construction prevents hallucinated
+    numbers in the card.
+    """
+
     message: str
     weather: WeatherData | None = None
     articles: list[ArticleData] | None = None
-    disasters: DisasterSummaryView | None = None
