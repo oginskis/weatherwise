@@ -118,3 +118,88 @@ def test_query_empty_result(repo) -> None:
     )
     assert response.total_matched == 0
     assert response.events == []
+
+
+def test_stats_count_by_type_descending(repo) -> None:
+    response = repo.stats(
+        group_by="type", metric="count",
+        country=None, disaster_type=None,
+        start_year=None, end_year=None, top_n=10,
+    )
+    # sorted descending by count
+    counts = [(row.group_value, int(row.metric_value)) for row in response.rows]
+    assert counts[0][1] >= counts[-1][1]
+    storm_row = next(r for r in response.rows if r.group_value == "Storm")
+    assert storm_row.metric_value == 4.0  # Hagibis, Katrina, Harvey, Latvia 1969
+
+
+def test_stats_top_n_caps_results(repo) -> None:
+    response = repo.stats(
+        group_by="type", metric="count",
+        country=None, disaster_type=None,
+        start_year=None, end_year=None, top_n=2,
+    )
+    assert len(response.rows) == 2
+
+
+def test_stats_total_deaths_by_country(repo) -> None:
+    response = repo.stats(
+        group_by="country", metric="total_deaths",
+        country=None, disaster_type=None,
+        start_year=None, end_year=None, top_n=10,
+    )
+    haiti_row = next(r for r in response.rows if r.group_value == "Haiti")
+    assert haiti_row.metric_value == 222570.0
+    # India should be top — 1,253,000 combined
+    india_row = next(r for r in response.rows if r.group_value == "India")
+    assert india_row.metric_value == 1253000.0
+
+
+def test_stats_total_damages_returns_thousands_usd(repo) -> None:
+    response = repo.stats(
+        group_by="country", metric="total_damages_usd",
+        country=None, disaster_type=None,
+        start_year=None, end_year=None, top_n=10,
+    )
+    japan_row = next(r for r in response.rows if r.group_value == "Japan")
+    # Tohoku 210M + Kobe 100M + Hagibis 17M = 327M (thousands USD)
+    assert japan_row.metric_value == 327_000_000.0
+
+
+def test_stats_by_decade(repo) -> None:
+    response = repo.stats(
+        group_by="decade", metric="count",
+        country=None, disaster_type=None,
+        start_year=None, end_year=None, top_n=10,
+    )
+    decade_values = {row.group_value for row in response.rows}
+    assert "2010" in decade_values
+    assert "2000" in decade_values
+
+
+def test_stats_invalid_group_by_raises(repo) -> None:
+    with pytest.raises(DisasterRepositoryError):
+        repo.stats(
+            group_by="quarter", metric="count",
+            country=None, disaster_type=None,
+            start_year=None, end_year=None, top_n=10,
+        )
+
+
+def test_stats_invalid_metric_raises(repo) -> None:
+    with pytest.raises(DisasterRepositoryError):
+        repo.stats(
+            group_by="type", metric="median_deaths",
+            country=None, disaster_type=None,
+            start_year=None, end_year=None, top_n=10,
+        )
+
+
+def test_stats_with_country_filter(repo) -> None:
+    response = repo.stats(
+        group_by="type", metric="count",
+        country="USA", disaster_type=None,
+        start_year=None, end_year=None, top_n=10,
+    )
+    types = {row.group_value for row in response.rows}
+    assert types == {"Storm", "Wildfire"}

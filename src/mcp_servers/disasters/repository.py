@@ -14,7 +14,17 @@ from src.agent.config import (
     DISASTERS_MIN_YEAR_FOR_LOCATION_SUMMARY,
 )
 from .loader import load_disasters
-from .models import DisasterEvent, QueryResponse
+from .models import DisasterEvent, QueryResponse, StatsResponse, StatsRow
+
+_VALID_GROUP_BY: dict[str, str] = {
+    "year": "Year",
+    "decade": "_decade",
+    "type": "Disaster Type",
+    "country": "Country",
+    "continent": "Continent",
+}
+
+_DAMAGES_COLUMN: str = "Total Damages ('000 US$)"
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +104,66 @@ class DisasterRepository:
         head = matched.head(limit)
         events = [_row_to_event(row) for row in head.to_dict(orient="records")]
         return QueryResponse(total_matched=int(len(matched)), events=events)
+
+    def stats(
+        self,
+        *,
+        group_by: str,
+        metric: str,
+        country: str | None,
+        disaster_type: str | None,
+        start_year: int | None,
+        end_year: int | None,
+        top_n: int,
+    ) -> StatsResponse:
+        """Aggregate matching events by ``group_by`` and rank by ``metric``."""
+        if group_by not in _VALID_GROUP_BY:
+            raise DisasterRepositoryError(
+                f"unknown group_by={group_by!r}; "
+                f"expected one of {sorted(_VALID_GROUP_BY)}"
+            )
+        if metric not in {"count", "total_deaths", "total_damages_usd"}:
+            raise DisasterRepositoryError(
+                f"unknown metric={metric!r}; "
+                "expected one of ['count', 'total_deaths', 'total_damages_usd']"
+            )
+
+        matched = self._apply_filters(
+            country=country,
+            disaster_type=disaster_type,
+            location_contains=None,
+            start_year=start_year,
+            end_year=end_year,
+        ).copy()
+
+        if group_by == "decade":
+            matched["_decade"] = (matched["Year"] // 10) * 10
+
+        column = _VALID_GROUP_BY[group_by]
+        grouped = matched.groupby(column, observed=True)
+
+        if metric == "count":
+            agg = grouped.size().rename("metric_value")
+            counts = agg
+        elif metric == "total_deaths":
+            agg = grouped["Total Deaths"].sum().fillna(0).rename("metric_value")
+            counts = grouped.size()
+        else:  # total_damages_usd
+            agg = grouped[_DAMAGES_COLUMN].sum().fillna(0).rename("metric_value")
+            counts = grouped.size()
+
+        combined = pd.concat([agg, counts.rename("event_count")], axis=1)
+        combined = combined.sort_values("metric_value", ascending=False).head(top_n)
+
+        rows = [
+            StatsRow(
+                group_value=str(idx),
+                metric_value=float(row["metric_value"]),
+                event_count=int(row["event_count"]),
+            )
+            for idx, row in combined.iterrows()
+        ]
+        return StatsResponse(group_by=group_by, metric=metric, rows=rows)
 
 
 def _row_to_event(row: dict) -> DisasterEvent:
