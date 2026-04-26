@@ -10,7 +10,7 @@ from src.mcp_servers.disasters.models import (
 )
 
 
-def test_disaster_event_minimal_fields() -> None:
+def test_disaster_event_full_fields() -> None:
     event = DisasterEvent(
         year=2011, country="Japan", location="Tohoku",
         disaster_type="Earthquake", disaster_subtype=None,
