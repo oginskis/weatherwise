@@ -32,3 +32,9 @@ packages = ["src"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["."]
+# Eval tests are opt-in: live LLM + MCP round-trips, slow, costs API quota.
+# Run them explicitly with `uv run pytest tests/evals/ -m eval`.
+addopts = "-m 'not eval'"
+markers = [
+    "eval: live agent eval (slow, requires running launcher and consumes LLM API quota)",
+]
