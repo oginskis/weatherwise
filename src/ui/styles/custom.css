@@ -108,3 +108,42 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
+
+/* Disaster Card */
+.disaster-card {
+    background: #fff7ed;
+    border: 1px solid #fdba74;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+}
+.disaster-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+.disaster-card-span {
+    font-weight: 400;
+    color: #9a3412;
+    font-size: 14px;
+}
+.disaster-card-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.disaster-chip {
+    background: #ffedd5;
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 13px;
+}
+.disaster-card-deadliest {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #7c2d12;
+    font-style: italic;
+}

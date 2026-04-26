@@ -10,7 +10,12 @@ from types import FrameType
 import httpx
 from dotenv import load_dotenv
 
-from src.agent.config import NEWS_MCP_PORT, STREAMLIT_PORT, WEATHER_MCP_PORT
+from src.agent.config import (
+    DISASTERS_MCP_PORT,
+    NEWS_MCP_PORT,
+    STREAMLIT_PORT,
+    WEATHER_MCP_PORT,
+)
 
 load_dotenv()
 
@@ -46,6 +51,20 @@ def _start_news_mcp() -> subprocess.Popen[bytes]:
             sys.executable,
             "-m",
             "src.mcp_servers.news.server",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
+
+def _start_disasters_mcp() -> subprocess.Popen[bytes]:
+    """Start the disasters MCP server."""
+    logger.info("Starting disasters MCP server on port %d...", DISASTERS_MCP_PORT)
+    return subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "src.mcp_servers.disasters.server",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -139,11 +158,17 @@ def main() -> None:
     news_proc = _start_news_mcp()
     processes.append(news_proc)
 
+    disasters_proc = _start_disasters_mcp()
+    processes.append(disasters_proc)
+
     # Wait for MCP servers to be ready
     if not _wait_for_server(WEATHER_MCP_PORT, "Weather MCP"):
         _shutdown()
         return
     if not _wait_for_server(NEWS_MCP_PORT, "News MCP"):
+        _shutdown()
+        return
+    if not _wait_for_server(DISASTERS_MCP_PORT, "Disasters MCP"):
         _shutdown()
         return
 
