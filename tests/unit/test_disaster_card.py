@@ -109,6 +109,40 @@ def test_build_card_from_stats_only_decade_aggregate() -> None:
     assert card.deadliest_event_summary is None
 
 
+def test_build_card_total_events_sums_multirow_stats_to_match_chips() -> None:
+    """When stats group_by='type' returned multiple rows, the header total
+    sums them so it matches what the chips visually show — this avoids the
+    inconsistency where query_disasters was filtered to one type
+    (small total_matched) while the chips reflect all types."""
+    messages = [
+        _msg_with_tool_return(
+            "disaster_stats",
+            {
+                "group_by": "type",
+                "metric": "count",
+                "rows": [
+                    {"group_value": "Storm", "metric_value": 187, "event_count": 187},
+                    {"group_value": "Earthquake", "metric_value": 69, "event_count": 69},
+                    {"group_value": "Flood", "metric_value": 59, "event_count": 59},
+                ],
+            },
+        ),
+        _msg_with_tool_return(
+            "query_disasters",
+            {"total_matched": 69, "events": []},  # filtered to Earthquakes only
+        ),
+    ]
+    card = build_disaster_card(messages)
+    assert card is not None
+    # Header should match the chip sum (187+69+59), not the filtered query.
+    assert card.total_events == 187 + 69 + 59
+    assert card.top_types == [
+        ("Storm", 187),
+        ("Earthquake", 69),
+        ("Flood", 59),
+    ]
+
+
 def test_build_card_total_events_prefers_query_total_matched() -> None:
     """When both stats and query are present, total_events comes from query.total_matched.
 

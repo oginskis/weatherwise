@@ -30,12 +30,16 @@ def _resolve_icon(disaster_type: str) -> str:
 
 def render_disaster_card(summary: DisasterSummaryView) -> None:
     """Render a compact disaster summary card."""
-    time_span = html.escape(summary.time_span or "")
     chips = "".join(
         f'<span class="disaster-chip">{_resolve_icon(t)} '
         f'{html.escape(t)} <strong>{c}</strong></span>'
         for t, c in summary.top_types
     )
+    span_html = ""
+    if summary.time_span:
+        span_html = (
+            f'<span class="disaster-card-span"> · {html.escape(summary.time_span)}</span>'
+        )
     deadliest_html = ""
     if summary.deadliest_event_summary:
         deadliest_html = (
@@ -50,7 +54,7 @@ def render_disaster_card(summary: DisasterSummaryView) -> None:
             <span class="disaster-icon">⚠️</span>
             <span class="disaster-card-title">
                 {summary.total_events} historical events
-                <span class="disaster-card-span"> · {time_span}</span>
+                {span_html}
             </span>
         </div>
         <div class="disaster-card-chips">{chips}</div>

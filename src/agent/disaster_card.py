@@ -102,7 +102,24 @@ def _coerce_to_dict(content: object) -> dict | None:
 def _compute_total_events(
     stats_returns: list[dict], query_returns: list[dict]
 ) -> int:
-    """Prefer query_disasters.total_matched; fall back to stats event_count sum."""
+    """Total event count for the card header.
+
+    When ``disaster_stats(group_by="type")`` returned multiple rows we sum
+    them — the chips show all those types so the header should match. This
+    avoids the misleading case where ``query_disasters`` was called with a
+    type filter (small ``total_matched``) while the type chips reflect the
+    broader unfiltered population. Falls back to ``query.total_matched``,
+    then to ``stats.event_count`` sum.
+    """
+    for r in stats_returns:
+        if r.get("group_by") == "type":
+            rows = r.get("rows", [])
+            if len(rows) > 1:
+                return sum(
+                    row["event_count"]
+                    for row in rows
+                    if isinstance(row.get("event_count"), int)
+                )
     if query_returns:
         return max((r.get("total_matched") or 0 for r in query_returns), default=0)
     total = 0
@@ -133,7 +150,8 @@ def _compute_time_span(
                 years.append(int(v))
     if not years:
         return None
-    return f"{min(years)}-{max(years)}"
+    lo, hi = min(years), max(years)
+    return str(lo) if lo == hi else f"{lo}-{hi}"
 
 
 def _compute_top_types(

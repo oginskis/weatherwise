@@ -17,15 +17,19 @@ CONVERSATION_STARTERS: list[dict[str, str]] = [
     # disaster mention for places with rich post-1980 history).
     {"label": "Weather in New York", "icon": "🌤️", "prompt": "What's the weather like in New York right now?"},
     {"label": "Weather in Tokyo", "icon": "🗼", "prompt": "What's the current weather in Tokyo?"},
-    # News — two distinct categories.
+    {"label": "Weather in London", "icon": "🌧️", "prompt": "What's the current weather in London?"},
+    # News — distinct categories.
     {"label": "Today's tech news", "icon": "💻", "prompt": "What are the latest technology news headlines?"},
     {"label": "Business news", "icon": "📈", "prompt": "What's happening in business news today?"},
+    {"label": "World news", "icon": "🌍", "prompt": "What are the top world news stories right now?"},
     # Disasters — aggregate / ranking queries.
     {"label": "Deadliest earthquakes", "icon": "🪨", "prompt": "What were the deadliest earthquakes ever recorded?"},
     {"label": "Floods by decade", "icon": "🌊", "prompt": "Which decade had the most floods worldwide?"},
+    {"label": "Worst wildfires", "icon": "🔥", "prompt": "What were the deadliest wildfires ever recorded?"},
     # Disasters — scoped queries (country + type, country + year).
     {"label": "Costliest US storms", "icon": "🌪️", "prompt": "What were the costliest storms in the United States?"},
     {"label": "Disasters in Haiti", "icon": "🌎", "prompt": "What disasters happened in Haiti?"},
+    {"label": "Disasters in Japan", "icon": "🗾", "prompt": "What were the deadliest natural disasters in Japan?"},
 ]
 
 
